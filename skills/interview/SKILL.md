@@ -128,3 +128,4 @@ If `.beads/` exists, after spec generation:
 - `references/templates/`: Work-type specific templates
 - `references/tts-integration.md`: TTS detection, voicing, and error handling
 - `references/beads-integration.md`: Epic/subtask creation via bd CLI
+- `references/bead-context.md`: Bead context loading for blitz mode
