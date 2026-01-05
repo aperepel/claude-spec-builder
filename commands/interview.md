@@ -55,7 +55,25 @@ Rapid clarification for existing beads:
 
 **Note:** `/blitz <bead-id>` is a shorthand for `/interview --blitz <bead-id>`
 
-## TTS Behavior
+## TTS Detection
+
+**CRITICAL: To detect TTS, invoke the skill - do NOT use curl or HTTP requests.**
+
+```
+Invoke skill: claude-mlx-tts:tts-status
+```
+
+**DO NOT:**
+- ❌ Use `curl` to probe HTTP endpoints
+- ❌ Guess ports or health check paths
+- ❌ Run shell commands to detect TTS
+
+**Detection results:**
+- If skill runs and says "running" → TTS available
+- If skill runs and says "not running" → invoke `/tts-start`, retry
+- If skill fails or doesn't exist → inform user: "TTS not available, continuing without voice"
+
+**Mode-specific behavior:**
 
 | Mode | TTS Behavior |
 |------|--------------|

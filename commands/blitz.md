@@ -44,10 +44,22 @@ Invalid bead ID format: '<input>'. Expected: bd-xxxx or bd-xxxx.n
 
 ## TTS Integration
 
-Blitz mode auto-detects TTS availability (no `--voice` flag needed):
-- If claude-mlx-tts is installed and server running: voice questions automatically
-- If not available: proceed with text-only interview
-- No user prompt for voice preference in blitz (unlike full interview)
+**CRITICAL: To detect TTS, invoke the skill - do NOT use curl or HTTP requests.**
+
+```
+Invoke skill: claude-mlx-tts:tts-status
+```
+
+**DO NOT:**
+- ❌ Use `curl` to probe HTTP endpoints
+- ❌ Guess ports or health check paths
+- ❌ Run shell commands to detect TTS
+
+**Behavior:**
+- If skill runs and says "running" → enable voice, use `/say` for questions
+- If skill runs and says "not running" → invoke `/tts-start`, retry
+- If skill fails or doesn't exist → inform user: "TTS not available, continuing without voice"
+- No user prompt for voice preference in blitz (auto-enable if available)
 
 ## Relation to /interview
 

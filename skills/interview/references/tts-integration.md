@@ -30,7 +30,7 @@ Invoke skill: claude-mlx-tts:tts-status
 | Skill runs, says "running" | TTS ready | Use `/say` and `/summary-say` |
 | Skill runs, says "not running" | Plugin installed, server stopped | Invoke `/tts-start`, then retry |
 | Skill runs, says "not initialized" | Plugin installed, needs setup | Tell user to run `/tts-init` |
-| Skill doesn't exist / error | Plugin not installed | Proceed without TTS (silently) |
+| Skill doesn't exist / error | Plugin not installed | Inform user: "TTS not available, continuing without voice" |
 
 ### Complete Detection Flow
 
@@ -45,7 +45,7 @@ Invoke skill: claude-mlx-tts:tts-status
 
 3. If skill fails or doesn't exist:
    - TTS plugin is not installed
-   - Proceed silently without TTS (don't mention it to user)
+   - Inform user: "TTS not available, continuing without voice"
 ```
 
 ### Auto-Start Server If Needed

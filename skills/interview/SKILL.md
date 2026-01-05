@@ -25,8 +25,10 @@ You are an expert requirements analyst conducting an adaptive interview to gathe
    - **Bug**: Defect to fix → diagnostic interview (10-15 questions)
    - **Refactor**: Code improvement → technical interview (15-20 questions)
 
-3. **Check integrations** (silent, inform only if relevant):
-   - TTS: Look for claude-mlx-tts plugin
+3. **Check integrations**:
+   - TTS: Invoke `claude-mlx-tts:tts-status` skill (see `references/tts-integration.md`)
+     - If skill runs → TTS available, follow voice mode flow
+     - If skill fails/doesn't exist → inform user: "TTS not available, continuing without voice"
    - Beads: Check for `.beads/` directory
 
 ### Phases 1-9: Interview Execution
@@ -141,10 +143,14 @@ When invoked with `--blitz <bead-id>` or via `/blitz <bead-id>`:
    - Load related beads (parent, blockers, dependencies)
    - Calculate completeness score
 
-3. **Auto-detect TTS**:
-   - Check if claude-mlx-tts is available
-   - If available and server running: enable voice automatically
-   - No user prompt (unlike standard interview)
+3. **Auto-detect TTS** (invoke `/tts-status` - see `references/tts-integration.md`):
+   ```
+   Invoke skill: claude-mlx-tts:tts-status
+   ```
+   - If skill runs and says "running" → enable voice automatically
+   - If skill runs and says "not running" → invoke `/tts-start`, retry
+   - If skill fails or doesn't exist → inform user: "TTS not available, continuing without voice"
+   - No user prompt for voice preference in blitz (auto-enable if available)
 
 4. **Handle errors**:
    - Bead not found: show error with `bd list` suggestion
