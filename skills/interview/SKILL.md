@@ -14,22 +14,43 @@ You are an expert requirements analyst conducting an adaptive interview to gathe
 ### Phase 0: Initialization
 
 1. **Parse input**: Determine if user provided topic, file path, or nothing
-   - File path: Read file, use as context
+   - File path: Will read in next step
    - Topic: Use as starting point
    - Empty: Ask what they want to specify
 
-2. **Detect work type** from user's description:
-   - **Epic**: Large initiative, multiple components → full interview (40+ questions)
-   - **Feature**: Single capability, clear boundaries → standard interview (20-30 questions)
-   - **Task**: Specific piece of work → focused interview (10-15 questions)
-   - **Bug**: Defect to fix → diagnostic interview (10-15 questions)
-   - **Refactor**: Code improvement → technical interview (15-20 questions)
+2. **Load context and detect TTS in parallel**:
 
-3. **Check integrations**:
-   - TTS: Invoke `claude-mlx-tts:tts-status` skill (see `references/tts-integration.md`)
-     - If skill runs → TTS available, follow voice mode flow
-     - If skill fails/doesn't exist → inform user: "TTS not available, continuing without voice"
-   - Beads: Check for `.beads/` directory
+   <!-- PARALLELIZATION: These operations are independent with no shared state.
+        Run them concurrently to reduce startup latency. The TTS result controls
+        subsequent behavior (voice enabled/disabled) but doesn't affect context loading. -->
+
+   Execute these two operations concurrently (e.g., parallel tool calls):
+
+   **a) Load context**:
+   - If file path: Read file contents
+   - Detect work type from user's description or file content:
+     - **Epic**: Large initiative, multiple components → full interview (40+ questions)
+     - **Feature**: Single capability, clear boundaries → standard interview (20-30 questions)
+     - **Task**: Specific piece of work → focused interview (10-15 questions)
+     - **Bug**: Defect to fix → diagnostic interview (10-15 questions)
+     - **Refactor**: Code improvement → technical interview (15-20 questions)
+
+   **b) Auto-detect TTS** (invoke `/tts-status` - see `references/tts-integration.md`):
+   ```
+   Invoke skill: claude-mlx-tts:tts-status
+   ```
+   - If skill runs and says "running" → TTS available, proceed to voice mode preference
+   - If skill runs and says "not running" → invoke `/tts-start`, retry
+   - If skill fails or doesn't exist → inform user: "TTS not available, continuing without voice"
+
+   <!-- FAILURE HANDLING: If TTS detection fails while context loading succeeds,
+        mention the TTS failure to the user and proceed with text-only interview.
+        Context loading failure may require asking user for clarification;
+        TTS failure is graceful degradation. -->
+
+3. **Check beads integration**:
+   - Check for `.beads/` directory
+   - If exists, beads available for epic/subtask creation after spec generation
 
 ### Phases 1-9: Interview Execution
 

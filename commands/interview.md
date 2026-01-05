@@ -32,10 +32,15 @@ When the user runs `/interview`, conduct a structured requirements-gathering int
 Full interview for new specifications:
 1. **Parse input**: Detect if argument is a topic string or file path
 2. **Load skill**: Use the interview skill from `skills/interview/SKILL.md`
-3. **Detect integrations**: Check for TTS and beads availability
-4. **Run interview**: Conduct adaptive 9-phase interview (10-40+ questions based on scope)
-5. **Generate spec**: Output structured markdown specification
-6. **Optional**: Create beads epic/subtasks if beads is available
+3. **Load context and detect TTS in parallel**:
+   <!-- PARALLELIZATION: These are independent operations with no shared state -->
+   - **a) Load context**: If file path provided, read file contents; detect work type from input
+   - **b) Detect TTS**: Invoke `tts-status` skill (see TTS Detection below)
+   - If TTS detection fails, mention it and proceed text-only (graceful degradation)
+4. **Check beads availability**: Look for `.beads/` directory
+5. **Run interview**: Conduct adaptive 9-phase interview (10-40+ questions based on scope)
+6. **Generate spec**: Output structured markdown specification
+7. **Optional**: Create beads epic/subtasks if beads is available
 
 ### Blitz Mode (`--blitz`)
 
