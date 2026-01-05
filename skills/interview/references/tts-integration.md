@@ -10,7 +10,19 @@ TTS integration provides voice narration for interview questions and summaries, 
 
 ### Step 1: Check Plugin Availability
 
-Check if the claude-mlx-tts plugin is installed by looking for its skills in the available skills list. The plugin provides these skills:
+**IMPORTANT**: TTS detection is done by checking the Skill tool's `<available_skills>` section in your system context. This is introspection of what you already know - NOT an external API call.
+
+**DO NOT**:
+- ❌ Use `curl` to probe HTTP endpoints
+- ❌ Guess ports or health check paths
+- ❌ Run shell commands to detect TTS
+- ❌ Check for running processes
+
+**DO**:
+- ✅ Look at the `<available_skills>` section in the Skill tool definition
+- ✅ Check if any skill name starts with `claude-mlx-tts:`
+
+The claude-mlx-tts plugin provides these skills (if installed):
 - `claude-mlx-tts:say` - Speak text directly
 - `claude-mlx-tts:summary-say` - Summarize and speak long text
 - `claude-mlx-tts:tts-status` - Check server status
@@ -19,13 +31,20 @@ Check if the claude-mlx-tts plugin is installed by looking for its skills in the
 - `claude-mlx-tts:tts-init` - Install dependencies and download model
 - `claude-mlx-tts:tts-mute` - Temporarily mute notifications
 
-Detection approach:
+**Detection logic** (pure introspection, no external calls):
 ```
-If available_skills contains any skill starting with "claude-mlx-tts:"
-  → TTS plugin is installed
-Otherwise
-  → TTS not available, proceed silently
+Look at <available_skills> in the Skill tool definition.
+
+If ANY skill name starts with "claude-mlx-tts:" (e.g., "claude-mlx-tts:say"):
+  → TTS plugin IS installed
+  → Proceed to Step 2 (server status check)
+
+If NO skills start with "claude-mlx-tts:":
+  → TTS plugin is NOT installed
+  → Proceed silently without TTS (do not mention it to user)
 ```
+
+This check is instant and deterministic - no network calls, no guessing.
 
 ### Step 2: Check Server Status
 
