@@ -37,6 +37,118 @@ Args: "What problem are you solving?"
 
 This applies to ALL interview output: questions, progress indicators, summaries, phase transitions - everything.
 
+## /say vs /summary-say: Decision Guide
+
+This is the **primary decision framework** for choosing between `/say` (verbatim) and `/summary-say` (condensed). Apply these rules consistently.
+
+### Decision Checklist
+
+For any content you're about to voice, ask:
+
+1. **Is exact wording critical?** (e.g., interview question, error message, brief status)
+   - YES → Use `/say`
+   - NO → Continue to step 2
+
+2. **Is the content 50+ words?**
+   - YES → Use `/summary-say`
+   - NO → Continue to step 3
+
+3. **Is this a recap, summary, or transition?** (e.g., phase summary, final validation, beads announcement)
+   - YES → Use `/summary-say`
+   - NO → Use `/say`
+
+### Content Type Rules
+
+| Content Type | Command | Rationale |
+|--------------|---------|-----------|
+| **Interview questions** | `/say` | Exact wording matters for clarity |
+| **Compound/multi-part questions** | `/summary-say` | Condense to key points, user reads full text |
+| **Phase transition summaries** | `/summary-say` | Always condense - prevents attention loss |
+| **Final validation recap** | `/summary-say` | Focus on key decisions/trade-offs only |
+| **Beads announcements** | `/summary-say` | Summarize epic/subtask structure |
+| **Short status updates** | `/say` | Brief, exact announcements |
+| **Error messages** | `/say` | Exact communication needed |
+| **Phase intro (1-2 sentences)** | `/say` | Short enough for verbatim |
+
+### Good vs Bad Examples
+
+**Phase Transition Summary:**
+```
+# ❌ WRONG: Using /say for long recap (causes attention loss)
+/say "Phase 1 complete. We've established that the problem is inconsistent
+data validation across three microservices, triggered by the lack of a
+shared schema. This impacts data integrity and causes silent failures
+in downstream processing. The existing system validates at each service
+boundary but uses different rules. Moving to user analysis..."
+
+# ✅ CORRECT: Using /summary-say (condenses key points)
+/summary-say "Phase 1 complete. We've established that the problem is
+inconsistent data validation across three microservices, triggered by
+the lack of a shared schema. This impacts data integrity and causes
+silent failures in downstream processing. The existing system validates
+at each service boundary but uses different rules. Moving to user analysis..."
+# Result: Voice says something like "Phase 1 done. Core issue is inconsistent
+# validation across services causing silent failures. Moving to users."
+```
+
+**Final Validation Recap:**
+```
+# ❌ WRONG: Voicing all requirements verbatim
+/say "[Reading 15 functional requirements, 8 non-functional requirements,
+5 constraints, and 3 out-of-scope items verbatim...]"
+
+# ✅ CORRECT: Focus on key decisions only
+/summary-say "Here's the full recap: [all requirements]. Key decisions
+we made: choosing JWT over sessions for statelessness, accepting eventual
+consistency for performance, and deferring mobile support to phase 2."
+# Result: Voice highlights just the trade-offs, user reads full list
+```
+
+**Beads Announcement:**
+```
+# ❌ WRONG: Skipping voice entirely or reading IDs
+/say "Created bd-f3c9 with bd-f3c9.1, bd-f3c9.2, bd-f3c9.3"
+
+# ✅ CORRECT: Summarize the structure (no IDs in voice)
+/summary-say "Created epic User Authentication with 3 subtasks:
+Core auth flow at priority 1, OAuth integration at priority 2,
+and Security hardening at priority 2. The OAuth subtask depends
+on the core auth flow being completed first."
+# Result: Voice gives human-friendly overview of what was created
+```
+
+**Interview Question:**
+```
+# ❌ WRONG: Using /summary-say for a question (loses exact wording)
+/summary-say "What authentication method should we use?"
+
+# ✅ CORRECT: Using /say for exact question (or short intro + visual)
+Bash: say.sh "About authentication..." &
+AskUserQuestion: "Which authentication method should we use?"
+```
+
+### Anchor Points: Always Voice
+
+These content types are **anchor points** that always get voiced, even in rapid-fire mode:
+- Phase transition summaries (via `/summary-say`)
+- Final validation recap (via `/summary-say`, key decisions focus)
+- Beads creation announcements (via `/summary-say`)
+- Interview start/end announcements (via `/say`)
+
+Regular questions follow pacing rules and may be skipped in rapid-fire mode, but anchors never skip.
+
+### Fallback Behavior
+
+If `/summary-say` fails (skill error, timeout, etc.):
+
+1. **Do NOT fall back to `/say`** (would read verbatim, causing the problem we're avoiding)
+2. **Voice a brief notice instead:**
+   ```
+   /say "See the summary below."
+   ```
+3. **Display the full text visually** (always required anyway)
+4. **Continue the interview** - don't retry or block
+
 ## TTS Detection Logic
 
 ### How to Detect TTS Availability
@@ -190,6 +302,8 @@ For rapid-fire mode (voice skipped):
 
 ### Using /summary-say for Long Content
 
+**See the Decision Guide above for the primary rules.** This section provides implementation details.
+
 For longer text that would be tedious to hear verbatim, use summary-say:
 
 ```
@@ -197,44 +311,56 @@ Invoke skill: claude-mlx-tts:summary-say
 Args: "<long text to summarize and speak>"
 ```
 
-**Use /summary-say for**:
+**Key principle**: `/summary-say` condenses text to ~30% of original length, highlighting key points. The full text is always shown visually - voice provides the digest.
 
-1. **Phase transitions**: When summarizing what was learned before moving on
+**Mandatory uses of /summary-say** (never use /say for these):
+
+1. **Phase transition summaries**: Always condense what was learned
    ```
+   # Pass the full summary - it will be condensed automatically
    Invoke skill: claude-mlx-tts:summary-say
    Args: "Phase 1 complete. We've established that the problem is [X], triggered by [Y], with impact on [Z]. The existing system does [A] but lacks [B]. Moving to user analysis..."
    ```
 
-2. **Final validation recap**: Before asking for confirmation
+2. **Final validation recap**: Focus voice on key decisions/trade-offs
    ```
+   # Voice will extract decisions, user reads full requirements visually
    Invoke skill: claude-mlx-tts:summary-say
-   Args: "[Full recap of all captured requirements across all phases...]"
+   Args: "[Full recap including requirements, constraints, decisions...]"
    ```
 
-3. **Spec summary**: After generating the spec file
+3. **Beads announcements**: Summarize the structure created
+   ```
+   # Voice gives overview, visual shows IDs for reference
+   Invoke skill: claude-mlx-tts:summary-say
+   Args: "Created epic [title] with [N] subtasks: [list with priorities and dependencies]"
+   ```
+
+4. **Spec summary**: After generating the spec file
    ```
    Invoke skill: claude-mlx-tts:summary-say
    Args: "Your specification has been saved. It covers [key sections] with [X] functional requirements and [Y] non-functional requirements. Key decisions include [major trade-offs]."
    ```
 
-4. **Gap identification**: When surfacing missing information
+5. **Gap identification**: When surfacing missing information
    ```
    Invoke skill: claude-mlx-tts:summary-say
    Args: "Looking at what we've covered, there are a few areas that might need more detail: [list of gaps]. Would you like to address any of these?"
    ```
 
-### When to Use /say vs /summary-say
+### Quick Reference: /say vs /summary-say
 
-| Content Type | Use | Reason |
-|--------------|-----|--------|
-| Single question | /say | Exact wording matters |
-| 2-3 questions | /say | Still brief enough for verbatim |
-| Phase intro (1-2 sentences) | /say | Short, exact phrasing |
-| Phase summary (paragraph+) | /summary-say | Condense for listening |
-| Status updates | /say | Brief announcements |
-| Requirement recaps | /summary-say | Long content, condense key points |
-| Error messages | /say | Exact communication needed |
-| Spec overview | /summary-say | Summarize key sections |
+| Content Type | Command | Key Rule |
+|--------------|---------|----------|
+| Single interview question | `/say` | Exact wording critical |
+| Compound/multi-part question | `/summary-say` | Condense, user reads full |
+| Phase intro (1-2 sentences) | `/say` | Short enough for verbatim |
+| **Phase summary** | **`/summary-say`** | **ALWAYS** - prevents attention loss |
+| **Final recap** | **`/summary-say`** | **ALWAYS** - focus on decisions |
+| **Beads announcement** | **`/summary-say`** | **ALWAYS** - summarize structure |
+| Short status update | `/say` | Brief, exact |
+| Error message | `/say` | Exact communication |
+| 50+ words of any type | `/summary-say` | Length threshold applies |
 
 ## Adaptive Pacing
 
@@ -561,8 +687,11 @@ When announcing beads operations:
 1. **Never block on TTS**: If TTS fails, continue immediately with text
 2. **Keep TTS text natural**: Write questions as you'd speak them
 3. **Pause between batched questions**: Give listener time to process
-4. **Summarize, don't recite**: Use /summary-say for anything over 2-3 sentences
+4. **Summarize, don't recite**: Use `/summary-say` for phase summaries, recaps, and beads announcements - NEVER `/say`
 5. **Fail gracefully**: Users should barely notice if TTS stops working
 6. **Don't over-voice**: Status messages and minor updates don't need TTS
 7. **Match tone**: Keep TTS text conversational, not robotic
 8. **No technical IDs in voice**: Use human-friendly titles, never bead IDs
+9. **50-word threshold**: If content exceeds 50 words, use `/summary-say` regardless of type
+10. **Anchor points always voice**: Phase summaries, final recap, and beads announcements are anchors - voice them even in rapid-fire mode
+11. **Fallback gracefully**: If `/summary-say` fails, say "See the summary below" - never fall back to `/say` for long content
