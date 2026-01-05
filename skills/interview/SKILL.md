@@ -112,6 +112,23 @@ If claude-mlx-tts is available and user wants voice:
 - Summaries: Use `/summary-say` (can be condensed)
 - Status updates: Use `/say` (brief announcements)
 
+**⚠️ CRITICAL: Visual output is MANDATORY regardless of TTS state.**
+
+TTS is SUPPLEMENTARY - it adds voice ON TOP OF visual output. Every message that is voiced MUST also be printed to the terminal. Never use TTS as a replacement for text output.
+
+```
+# WRONG: Voice only
+Invoke /say with question
+# (no visual output)
+
+# CORRECT: Voice AND visual output
+Invoke /say with question
+Display question text visually
+Use AskUserQuestion for response
+```
+
+See `references/tts-integration.md` for complete TTS integration details.
+
 ## Beads Integration (Optional)
 
 If `.beads/` exists, after spec generation:
@@ -265,15 +282,17 @@ After collecting clarifications:
 
 When TTS is active in blitz mode:
 
-| Content | Voice? | Rationale |
-|---------|--------|-----------|
-| Initial context summary | Yes (summary-say) | Orient user |
-| Core questions | Yes (say) | Key questions need voice |
-| Follow-up clarifications | Based on pace | Skip if user responds fast |
-| Confirmation questions | Yes (say) | Important checkpoints |
-| Final summary | Yes (summary-say) | Wrap up |
+| Content | Voice? | Visual Output? | Rationale |
+|---------|--------|----------------|-----------|
+| Initial context summary | Yes (summary-say) | **ALWAYS** | Orient user |
+| Core questions | Yes (say) | **ALWAYS** | Key questions need voice |
+| Follow-up clarifications | Based on pace | **ALWAYS** | Skip voicing if user responds fast |
+| Confirmation questions | Yes (say) | **ALWAYS** | Important checkpoints |
+| Final summary | Yes (summary-say) | **ALWAYS** | Wrap up |
 
-If user responds before TTS finishes, reduce voicing for subsequent questions.
+**Note**: Visual output is ALWAYS required. The "Voice?" column only indicates whether to add TTS on top of the visual output. TTS is supplementary, not a replacement.
+
+If user responds before TTS finishes, reduce voicing for subsequent questions (but always show text).
 
 ## Reference Files
 

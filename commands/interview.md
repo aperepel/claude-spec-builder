@@ -80,4 +80,16 @@ Invoke skill: claude-mlx-tts:tts-status
 | Standard | Ask user preference, or use `--voice` flag |
 | Blitz | Auto-detect TTS, enable if available (no prompt) |
 
+## ⚠️ Visual Output Is Always Required
+
+**TTS is SUPPLEMENTARY, not a replacement for visual output.**
+
+Every message that is voiced MUST also be printed to the terminal. This applies to:
+- Questions
+- Progress indicators
+- Summaries
+- Phase transitions
+
+TTS adds voice ON TOP OF visual output. It never replaces it.
+
 See the interview skill for detailed interview logic and phases.

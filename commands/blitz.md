@@ -61,6 +61,10 @@ Invoke skill: claude-mlx-tts:tts-status
 - If skill fails or doesn't exist → inform user: "TTS not available, continuing without voice"
 - No user prompt for voice preference in blitz (auto-enable if available)
 
+**⚠️ Visual output is MANDATORY regardless of TTS state.**
+
+TTS is SUPPLEMENTARY - it adds voice ON TOP OF visual output. Every message that is voiced MUST also be printed to the terminal. TTS never replaces text output.
+
 ## Relation to /interview
 
 `/blitz <bead-id>` is equivalent to `/interview --blitz <bead-id>`.

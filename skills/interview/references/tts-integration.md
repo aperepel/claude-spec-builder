@@ -6,6 +6,37 @@ Integration guide for optional text-to-speech support using the claude-mlx-tts p
 
 TTS integration provides voice narration for interview questions and summaries, creating a more conversational interview experience. This is entirely optional - the interview works fully without TTS.
 
+## ⚠️ CRITICAL: Visual Output Is Mandatory
+
+**TTS is SUPPLEMENTARY, not a replacement for visual output.**
+
+Every message that is voiced MUST also be printed to the terminal. Users must be able to:
+- Read questions while hearing them
+- Refer back to what was asked
+- Work in environments where audio isn't possible
+
+**NEVER do this:**
+```
+# WRONG: Voice only, no visual output
+Invoke skill: claude-mlx-tts:say
+Args: "What problem are you solving?"
+# User hears the question but sees nothing
+```
+
+**ALWAYS do this:**
+```
+# CORRECT: Voice AND visual output
+Invoke skill: claude-mlx-tts:say
+Args: "What problem are you solving?"
+
+# Then ALSO output the question text visually:
+"What problem are you solving?"
+
+# Then use AskUserQuestion for the structured response
+```
+
+This applies to ALL interview output: questions, progress indicators, summaries, phase transitions - everything.
+
 ## TTS Detection Logic
 
 ### How to Detect TTS Availability
@@ -104,16 +135,18 @@ Args: "<exact question text>"
 
 **Important guidelines**:
 
-1. **Exact wording**: Pass the complete question as you want it spoken. The TTS will read it verbatim.
+1. **Visual output is MANDATORY**: After invoking TTS, you MUST also display the question text visually. TTS adds voice; it does not replace text output.
 
-2. **Timing**: Invoke TTS before displaying the question text. This ensures voice starts playing as the user reads.
+2. **Exact wording**: Pass the complete question as you want it spoken. The TTS will read it verbatim.
 
-3. **Question batching**: When asking 2-3 questions together:
+3. **Timing**: Invoke TTS before displaying the question text. This ensures voice starts playing as the user reads.
+
+4. **Question batching**: When asking 2-3 questions together:
    - Combine into a single TTS invocation with natural pauses
    - Example: "First question: What problem are you solving? ... And second: Why is this important now?"
    - Or invoke TTS once per question with a brief pause between
 
-4. **AskUserQuestion integration**: When using AskUserQuestion tool, invoke TTS with the question text before presenting the structured choice.
+5. **AskUserQuestion integration**: When using AskUserQuestion tool, invoke TTS with the question text before presenting the structured choice. The AskUserQuestion provides the visual output.
 
 ### Example Question Voicing
 
@@ -352,18 +385,23 @@ After user enables voice mode (or --voice flag):
 
 ### During Interview (Phases 1-9)
 
+**CRITICAL: Visual output is MANDATORY. TTS is supplementary.**
+
 ```
 For each question or question batch:
   If voice_mode_enabled and tts_verified:
     Invoke /say with question text
-  Display question text (always, regardless of TTS)
+  ALWAYS display question text visually (regardless of TTS state)
+  Use AskUserQuestion tool for structured response
   Wait for user response
 
 For phase transitions:
   If voice_mode_enabled and tts_verified:
     Invoke /summary-say with phase summary
-  Display summary text
+  ALWAYS display summary text visually (regardless of TTS state)
 ```
+
+**Remember**: TTS adds voice ON TOP OF visual output. It never replaces it.
 
 ### Phase 10: Validation & Output
 

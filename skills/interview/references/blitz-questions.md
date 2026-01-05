@@ -351,11 +351,19 @@ Is the approach described there still current?"
 
 ## TTS Considerations
 
+**⚠️ CRITICAL: Visual output is ALWAYS required. TTS is supplementary.**
+
 For blitz interviews with TTS enabled:
 
-1. **Always voice**: Core questions, phase transitions
-2. **Optionally voice**: Depth questions (based on user response speed)
-3. **Never voice**: Internal processing, completeness analysis
+| Content | Voice? | Visual Output? | Notes |
+|---------|--------|----------------|-------|
+| Core questions | Always | **ALWAYS** | Voice adds to visual |
+| Phase transitions | Always | **ALWAYS** | Voice adds to visual |
+| Depth questions | Based on pace | **ALWAYS** | May skip voice if fast |
+| Internal processing | Never | N/A | Not user-facing |
+| Completeness analysis | Never | N/A | Not user-facing |
+
+TTS adds voice ON TOP OF visual output. It never replaces text output.
 
 Keep questions concise for TTS - long questions are harder to follow aurally.
 
