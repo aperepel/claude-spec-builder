@@ -1,0 +1,9 @@
+{
+  "name": "claude-spec-builder",
+  "description": "Adaptive interview plugin for structured requirements gathering. Conducts 10-40+ question interviews and outputs actionable markdown specifications.",
+  "version": "0.1.0",
+  "author": {
+    "name": "aperepel"
+  },
+  "keywords": ["interview", "spec", "requirements", "planning", "specification"]
+}

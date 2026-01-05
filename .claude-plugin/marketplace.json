@@ -1,0 +1,26 @@
+{
+  "name": "claude-spec-builder",
+  "owner": {
+    "name": "aperepel"
+  },
+  "metadata": {
+    "description": "Adaptive interview plugin for structured requirements gathering",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "claude-spec-builder",
+      "source": "./",
+      "description": "Conducts adaptive interviews (10-40+ questions) for requirements gathering. Outputs structured markdown specifications. Optionally integrates with beads (epic/subtask generation) and claude-mlx-tts (voice interviews).",
+      "version": "0.1.0",
+      "author": {
+        "name": "aperepel"
+      },
+      "license": "MIT",
+      "homepage": "https://github.com/aperepel/claude-spec-builder",
+      "repository": "https://github.com/aperepel/claude-spec-builder",
+      "keywords": ["interview", "spec", "requirements", "planning", "specification", "beads", "tts"],
+      "category": "productivity"
+    }
+  ]
+}
