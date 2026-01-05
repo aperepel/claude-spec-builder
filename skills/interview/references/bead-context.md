@@ -437,6 +437,47 @@ The loaded context informs question generation:
  3. Anything you'd add or clarify?"
 ```
 
+### Voice Output Guidelines
+
+**Never read bead IDs aloud.** When TTS is enabled, use human-friendly titles only.
+
+| Visual Output | Voice Output |
+|---------------|--------------|
+| Loading bead bd-a3f8.2: OAuth integration | "Loading: OAuth integration" |
+| Depends on bd-f3c9.1: Core auth flow | "This depends on Core auth flow" |
+| Updated bd-x2y3 with clarifications | "Updated the bead with your clarifications" |
+
+**Blitz announcements:**
+```
+# Visual (includes ID)
+Starting blitz for bd-f3c9.2: OAuth integration
+
+# Voice (no ID)
+/say "Starting blitz for OAuth integration"
+```
+
+**Blocker announcements:**
+```
+# Visual
+Blocked by bd-f3c9.1: Core auth flow (P1 - in_progress)
+
+# Voice
+/say "This is blocked by Core auth flow, which is currently in progress."
+```
+
+**Completion announcements:**
+```
+# Visual
+Updated bd-x2y3 with:
+- Reproduction steps added
+- Environment info captured
+
+# Voice
+/say "Updated the bead with reproduction steps and environment info."
+```
+
+See `references/tts-integration.md` for complete voice content guidelines.
+
 ### Updating Bead After Interview
 
 After blitz completes, use collected context to update bead:

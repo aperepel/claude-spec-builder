@@ -494,6 +494,68 @@ Variables to track during interview:
 | `tts_verified` | boolean | Pre-flight check passed |
 | `tts_failure_count` | number | Consecutive TTS failures (disable after 2-3) |
 
+## Voice Content Guidelines
+
+### Technical IDs: Use Human-Friendly Titles
+
+**Never read technical IDs aloud.** Bead IDs like `bd-f3c9` or `bd-a1b2.3` are for visual reference only. When voicing announcements, use human-friendly titles instead.
+
+| Visual Output (shows ID) | Voice Output (no ID) |
+|--------------------------|----------------------|
+| Created epic: bd-f3c9 - User Authentication | "Created epic: User Authentication" |
+| Created: bd-f3c9.1 - Core auth flow | "Created subtask: Core auth flow" |
+| View with: `bd show bd-f3c9` | "You can view the epic details with the show command" |
+| Depends on bd-f3c9.1 | "Depends on Core auth flow" |
+
+### Examples
+
+**Beads creation announcement:**
+```
+# Visual (includes IDs for copy/paste)
+Created epic bd-f3c9 with 3 subtasks:
+- bd-f3c9.1: Core auth flow (P1)
+- bd-f3c9.2: OAuth integration (P2)
+- bd-f3c9.3: Security hardening (P2)
+
+# Voice (human-friendly)
+/say "Created epic User Authentication with 3 subtasks: Core auth flow, OAuth integration, and Security hardening."
+```
+
+**Blitz mode bead loading:**
+```
+# Visual
+Loading bead bd-a3f8.2: Implement caching layer
+
+# Voice
+/say "Loading: Implement caching layer"
+```
+
+**Dependency announcements:**
+```
+# Visual
+bd-f3c9.2 depends on bd-f3c9.1
+
+# Voice
+/say "OAuth integration depends on Core auth flow"
+```
+
+### When to Include IDs
+
+The only time to voice technical identifiers:
+- **Never for bead IDs** - always use titles
+- **Version numbers** - "Version 2.3" is fine to voice
+- **Priority levels** - "Priority 1" or "P1" is acceptable (brief and meaningful)
+
+### Implementation Notes
+
+When announcing beads operations:
+1. Store the title alongside the ID during creation
+2. Build voice content using titles, not IDs
+3. Visual output shows full `ID: Title` format for reference
+4. Voice output uses only the title portion
+
+---
+
 ## Best Practices
 
 1. **Never block on TTS**: If TTS fails, continue immediately with text
@@ -503,3 +565,4 @@ Variables to track during interview:
 5. **Fail gracefully**: Users should barely notice if TTS stops working
 6. **Don't over-voice**: Status messages and minor updates don't need TTS
 7. **Match tone**: Keep TTS text conversational, not robotic
+8. **No technical IDs in voice**: Use human-friendly titles, never bead IDs

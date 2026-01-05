@@ -356,6 +356,8 @@ The spec has been generated successfully. Beads integration is a bonus feature. 
 
 After successful beads integration, provide a summary:
 
+### Visual Output (Terminal)
+
 ```
 ## Beads Work Items Created
 
@@ -371,6 +373,29 @@ After successful beads integration, provide a summary:
 - List all: `bd list`
 - Start work: `bd update bd-f3c9.1 --status in_progress`
 ```
+
+### Voice Output (TTS)
+
+**Never read bead IDs aloud.** Use human-friendly titles only:
+
+```
+# Good - human-friendly
+/say "Created epic: User Authentication, with 3 subtasks. Core auth flow at priority 1, OAuth integration and Security hardening at priority 2."
+
+# Bad - reads technical IDs
+/say "Created epic bd-f3c9 with subtasks bd-f3c9.1, bd-f3c9.2, and bd-f3c9.3"
+```
+
+For command suggestions in voice:
+```
+# Good - describe the action
+/say "Use the show command to view details, or update command to start work."
+
+# Bad - reads literal commands with IDs
+/say "Run bd show bd-f3c9 to view the epic."
+```
+
+See `references/tts-integration.md` for complete voice content guidelines.
 
 ---
 
