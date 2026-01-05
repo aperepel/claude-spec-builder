@@ -120,6 +120,124 @@ If `.beads/` exists, after spec generation:
 3. Use `bd` CLI commands to create work items
 4. If bd fails, offer to retry or skip
 
+---
+
+## Blitz Mode
+
+Blitz mode is a rapid clarification interview for existing beads (3-10 questions vs 10-40+).
+
+### Blitz Initialization
+
+When invoked with `--blitz <bead-id>` or via `/blitz <bead-id>`:
+
+1. **Validate bead ID format**:
+   - Must match: `bd-xxxx`, `bd-xxxx.n`, or `bd-xxxx.n.m`
+   - If invalid: show error and stop
+
+2. **Load bead context** (see `references/bead-context.md`):
+   - Run `bd show <bead-id>` to get bead fields
+   - Parse description for file references
+   - Load related beads (parent, blockers, dependencies)
+   - Calculate completeness score
+
+3. **Auto-detect TTS**:
+   - Check if claude-mlx-tts is available
+   - If available and server running: enable voice automatically
+   - No user prompt (unlike standard interview)
+
+4. **Handle errors**:
+   - Bead not found: show error with `bd list` suggestion
+   - bd command fails: offer retry/skip options
+
+### Blitz Interview Flow
+
+Based on completeness score from context loading:
+
+**Well-specified (score 8-10)**:
+```
+"<Title> looks well-specified. Quick confirmation:
+1. Is the scope/approach still accurate?
+2. Any blockers or changes since this was written?
+3. Anything to add or clarify?"
+```
+If user confirms, skip to output. Otherwise, dig deeper.
+
+**Moderate (score 5-7)**:
+- Ask 3-5 focused questions targeting gaps identified in completeness analysis
+- Use questions from `references/blitz-questions.md` based on bead type
+- Skip questions where info already exists
+
+**Sparse (score 0-4)**:
+- Run full blitz (6-10 questions)
+- Start with core questions for the bead type
+- Add depth questions as needed
+- Reference any context that does exist
+
+### Question Selection
+
+Select questions based on bead type and gaps (see `references/blitz-questions.md`):
+
+| Type | Focus | Core Questions |
+|------|-------|----------------|
+| Bug | Reproduction, expected vs actual | Steps, environment, impact |
+| Feature | User value, scope, acceptance | What/why, boundaries, done criteria |
+| Task | Implementation, blockers | Approach, dependencies, testing |
+| Refactor | Current→target state, migration | Problems, goals, risks |
+
+### Blitz Output
+
+After collecting clarifications:
+
+1. **Update bead** via `bd update`:
+   ```bash
+   bd update <bead-id> --description="<enhanced-description>"
+   ```
+   - Append new info to existing description
+   - Update priority if discussed
+   - Add labels if discovered
+   - Add dependencies if identified
+
+2. **Check for existing spec**:
+   - Look for spec file matching bead title in `specs/`, `docs/specs/`, etc.
+   - If found: append "Clarifications" section
+   - If not found: offer to create mini-spec or skip
+
+3. **Mini-spec format** (when no existing spec):
+   ```markdown
+   # Clarifications: <bead-title>
+
+   **Bead:** <bead-id>
+   **Date:** YYYY-MM-DD
+
+   ## Questions Answered
+   - Q: <question>
+     A: <answer>
+
+   ## Decisions Made
+   - <decision and rationale>
+
+   ## Updated Scope
+   - In: <additions>
+   - Out: <exclusions>
+
+   ## Next Steps
+   - <action items>
+   ```
+
+### Blitz TTS Pacing
+
+When TTS is active in blitz mode:
+
+| Content | Voice? | Rationale |
+|---------|--------|-----------|
+| Initial context summary | Yes (summary-say) | Orient user |
+| Core questions | Yes (say) | Key questions need voice |
+| Follow-up clarifications | Based on pace | Skip if user responds fast |
+| Confirmation questions | Yes (say) | Important checkpoints |
+| Final summary | Yes (summary-say) | Wrap up |
+
+If user responds before TTS finishes, reduce voicing for subsequent questions.
+
 ## Reference Files
 
 - `references/phases.md`: Detailed phase questions and techniques
@@ -129,3 +247,4 @@ If `.beads/` exists, after spec generation:
 - `references/tts-integration.md`: TTS detection, voicing, and error handling
 - `references/beads-integration.md`: Epic/subtask creation via bd CLI
 - `references/bead-context.md`: Bead context loading for blitz mode
+- `references/blitz-questions.md`: Work-type driven question sets for blitz
