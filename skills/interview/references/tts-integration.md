@@ -171,6 +171,70 @@ Args: "<long text to summarize and speak>"
 | Error messages | /say | Exact communication needed |
 | Spec overview | /summary-say | Summarize key sections |
 
+## Adaptive Pacing
+
+TTS calls are blocking (~3s per question). Adapt voicing based on user response patterns.
+
+### Anchor vs Non-Anchor Questions
+
+| Question Type | Always Voice? | Skip When Fast? |
+|---------------|---------------|-----------------|
+| Phase intro/transition | Yes | No |
+| AskUserQuestion (choices) | Yes | No |
+| Core interview questions | Yes | No |
+| Follow-up clarifications | No | Yes |
+| Quick confirmations | No | Yes |
+| Final recap/summary | Yes | No |
+
+### Detecting User Pace
+
+Infer user pace from response patterns:
+
+**Fast-paced user** (reduce voicing):
+- Short, terse answers: "yes", "correct", "that's right"
+- User answers before you finish context
+- Quick back-and-forth pattern
+- User explicitly says "faster" or "skip ahead"
+
+**Deliberate-paced user** (voice everything):
+- Detailed, thoughtful responses
+- User asks clarifying questions
+- Takes time between responses
+- Explicitly appreciates voice feedback
+
+### Pacing Logic
+
+```
+At interview start:
+  voice_all = true  # Default to voicing
+
+After each user response:
+  if response is terse AND came quickly:
+    fast_response_count += 1
+  else:
+    fast_response_count = 0
+
+  if fast_response_count >= 2:
+    # User is in rapid-fire mode
+    voice_all = false
+    # Only voice anchor questions (phase intros, AskUserQuestion, recaps)
+
+  if user explicitly requests more/less voicing:
+    # Respect explicit preference
+    adjust voice_all accordingly
+```
+
+### Graceful Adaptation
+
+When reducing voicing:
+- Don't announce "skipping voice for speed"
+- Just naturally continue with text
+- Resume voicing for anchor questions
+
+When user pace slows down:
+- Gradually reintroduce voicing
+- Reset fast_response_count when user gives detailed answer
+
 ## Error Handling
 
 ### TTS Unavailable at Start
