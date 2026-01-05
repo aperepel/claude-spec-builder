@@ -8,68 +8,57 @@ TTS integration provides voice narration for interview questions and summaries, 
 
 ## TTS Detection Logic
 
-### Step 1: Check Plugin Availability
+### How to Detect TTS Availability
 
-**IMPORTANT**: TTS detection is done by checking the Skill tool's `<available_skills>` section in your system context. This is introspection of what you already know - NOT an external API call.
+**Use the Skill tool to invoke `/tts-status`. That's it.**
+
+```
+Invoke skill: claude-mlx-tts:tts-status
+```
 
 **DO NOT**:
 - ❌ Use `curl` to probe HTTP endpoints
 - ❌ Guess ports or health check paths
 - ❌ Run shell commands to detect TTS
 - ❌ Check for running processes
+- ❌ Try to introspect available_skills manually
 
-**DO**:
-- ✅ Look at the `<available_skills>` section in the Skill tool definition
-- ✅ Check if any skill name starts with `claude-mlx-tts:`
+**Interpretation of results:**
 
-The claude-mlx-tts plugin provides these skills (if installed):
-- `claude-mlx-tts:say` - Speak text directly
-- `claude-mlx-tts:summary-say` - Summarize and speak long text
-- `claude-mlx-tts:tts-status` - Check server status
-- `claude-mlx-tts:tts-start` - Start the TTS server
-- `claude-mlx-tts:tts-stop` - Stop the TTS server
-- `claude-mlx-tts:tts-init` - Install dependencies and download model
-- `claude-mlx-tts:tts-mute` - Temporarily mute notifications
+| Result | Meaning | Next Step |
+|--------|---------|-----------|
+| Skill runs, says "running" | TTS ready | Use `/say` and `/summary-say` |
+| Skill runs, says "not running" | Plugin installed, server stopped | Invoke `/tts-start`, then retry |
+| Skill runs, says "not initialized" | Plugin installed, needs setup | Tell user to run `/tts-init` |
+| Skill doesn't exist / error | Plugin not installed | Proceed without TTS (silently) |
 
-**Detection logic** (pure introspection, no external calls):
-```
-Look at <available_skills> in the Skill tool definition.
-
-If ANY skill name starts with "claude-mlx-tts:" (e.g., "claude-mlx-tts:say"):
-  → TTS plugin IS installed
-  → Proceed to Step 2 (server status check)
-
-If NO skills start with "claude-mlx-tts:":
-  → TTS plugin is NOT installed
-  → Proceed silently without TTS (do not mention it to user)
-```
-
-This check is instant and deterministic - no network calls, no guessing.
-
-### Step 2: Check Server Status
-
-Once plugin availability is confirmed, check if the TTS server is running:
+### Complete Detection Flow
 
 ```
-Invoke skill: claude-mlx-tts:tts-status
+1. Invoke skill: claude-mlx-tts:tts-status
+
+2. If skill executes successfully:
+   - Parse output for "running", "not running", or "not initialized"
+   - If "running" → TTS is available, proceed with voice
+   - If "not running" → invoke claude-mlx-tts:tts-start, then retry
+   - If "not initialized" → inform user, offer to continue without voice
+
+3. If skill fails or doesn't exist:
+   - TTS plugin is not installed
+   - Proceed silently without TTS (don't mention it to user)
 ```
 
-The status check will indicate whether the server is:
-- Running and ready
-- Not running (needs start)
-- Not initialized (needs /tts-init first)
+### Auto-Start Server If Needed
 
-### Step 3: Auto-Start Server If Needed
-
-If the server is not running but the plugin is installed:
+If status shows "not running":
 
 ```
 Invoke skill: claude-mlx-tts:tts-start
 ```
 
-Wait for confirmation that the server started successfully before proceeding.
+Wait for confirmation, then invoke `/tts-status` again to verify.
 
-If the server fails to start (e.g., model not downloaded), inform the user:
+If start fails (e.g., model not downloaded), inform the user:
 > "TTS server couldn't start. You may need to run /tts-init first to install dependencies. Would you like to continue without voice?"
 
 ## Voice Mode Activation
