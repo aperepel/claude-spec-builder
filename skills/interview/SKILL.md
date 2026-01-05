@@ -154,13 +154,21 @@ When invoked with `--blitz <bead-id>` or via `/blitz <bead-id>`:
    - Must match: `bd-xxxx`, `bd-xxxx.n`, or `bd-xxxx.n.m`
    - If invalid: show error and stop
 
-2. **Load bead context** (see `references/bead-context.md`):
+2. **Load context and detect TTS in parallel**:
+
+   <!-- PARALLELIZATION: These operations are independent with no shared state.
+        Run them concurrently to reduce startup latency. The TTS result controls
+        subsequent behavior (voice enabled/disabled) but doesn't affect bead loading. -->
+
+   Execute these two operations concurrently (e.g., parallel tool calls):
+
+   **a) Load bead context** (see `references/bead-context.md`):
    - Run `bd show <bead-id>` to get bead fields
    - Parse description for file references
    - Load related beads (parent, blockers, dependencies)
    - Calculate completeness score
 
-3. **Auto-detect TTS** (invoke `/tts-status` - see `references/tts-integration.md`):
+   **b) Auto-detect TTS** (invoke `/tts-status` - see `references/tts-integration.md`):
    ```
    Invoke skill: claude-mlx-tts:tts-status
    ```
@@ -169,7 +177,11 @@ When invoked with `--blitz <bead-id>` or via `/blitz <bead-id>`:
    - If skill fails or doesn't exist → inform user: "TTS not available, continuing without voice"
    - No user prompt for voice preference in blitz (auto-enable if available)
 
-4. **Handle errors**:
+   <!-- FAILURE HANDLING: If TTS detection fails while bead loading succeeds,
+        mention the TTS failure to the user and proceed with text-only interview.
+        Bead loading failure is fatal; TTS failure is graceful degradation. -->
+
+3. **Handle errors**:
    - Bead not found: show error with `bd list` suggestion
    - bd command fails: offer retry/skip options
 

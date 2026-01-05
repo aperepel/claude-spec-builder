@@ -37,7 +37,11 @@ Invalid bead ID format: '<input>'. Expected: bd-xxxx or bd-xxxx.n
 
 1. **Validate bead ID format**: Check argument matches expected pattern
 2. **Route to interview skill**: Equivalent to `/interview --blitz <bead-id>`
-3. **Load bead context**: Use `references/bead-context.md` for context loading
+3. **Load context and detect TTS in parallel**:
+   <!-- PARALLELIZATION: These are independent operations with no shared state -->
+   - **a) Load bead context**: Use `references/bead-context.md` for context loading
+   - **b) Detect TTS**: Invoke `tts-status` skill (see TTS Integration below)
+   - If TTS detection fails, mention it and proceed text-only (graceful degradation)
 4. **Run blitz interview**: Adaptive 3-10 questions based on completeness
 5. **Update bead**: Apply clarifications via `bd update`
 6. **Optional**: Append to existing spec if one exists
