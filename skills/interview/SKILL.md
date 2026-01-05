@@ -33,11 +33,12 @@ You are an expert requirements analyst conducting an adaptive interview to gathe
 
 Conduct the interview following the phase structure in `references/phases.md`. Key behaviors:
 
-**Question delivery**:
-- Ask 1-3 questions at a time (not more)
-- Use AskUserQuestion tool for structured choices (2-4 options)
-- For open-ended questions, ask directly in conversation
-- Wait for response before proceeding
+**Question delivery (CRITICAL)**:
+- Use **AskUserQuestion tool** for each question - do NOT dump multiple questions as text
+- Ask ONE question, wait for response, then ask the next
+- For structured choices: use AskUserQuestion with 2-4 options
+- For open-ended questions: still use AskUserQuestion with options like "Yes", "No", "Let me explain..."
+- Maximum 1-2 questions per turn, never more
 
 **Adaptive behaviors**:
 - Skip phases not relevant to work type (e.g., skip Users phase for internal refactor)
@@ -151,27 +152,57 @@ When invoked with `--blitz <bead-id>` or via `/blitz <bead-id>`:
 
 ### Blitz Interview Flow
 
+**CRITICAL: Use AskUserQuestion tool for EACH question. Do NOT dump multiple questions as text.**
+
+Ask ONE question at a time. Wait for response. Then ask the next question.
+
+**DO NOT** do this (wrong):
+```
+Question 1: What is X?
+Question 2: What is Y?
+Question 3: What is Z?
+Please answer these!
+```
+
+**DO** this (correct):
+```
+Use AskUserQuestion tool:
+  question: "What is X?"
+  header: "Scope"
+  options: [relevant choices]
+
+[Wait for user response]
+
+Use AskUserQuestion tool:
+  question: "What is Y?"
+  ...
+```
+
 Based on completeness score from context loading:
 
 **Well-specified (score 8-10)**:
 ```
-"<Title> looks well-specified. Quick confirmation:
-1. Is the scope/approach still accurate?
-2. Any blockers or changes since this was written?
-3. Anything to add or clarify?"
+AskUserQuestion:
+  question: "<Title> looks well-specified. Is there anything to add or clarify?"
+  header: "Confirm"
+  options:
+    - "Looks good, no changes"
+    - "Need to clarify scope"
+    - "Have updates to add"
 ```
-If user confirms, skip to output. Otherwise, dig deeper.
+If user confirms "looks good", skip to output. Otherwise, dig deeper with follow-up questions.
 
 **Moderate (score 5-7)**:
 - Ask 3-5 focused questions targeting gaps identified in completeness analysis
+- Use AskUserQuestion for each question, one at a time
 - Use questions from `references/blitz-questions.md` based on bead type
 - Skip questions where info already exists
 
 **Sparse (score 0-4)**:
 - Run full blitz (6-10 questions)
+- Use AskUserQuestion for each question, one at a time
 - Start with core questions for the bead type
 - Add depth questions as needed
-- Reference any context that does exist
 
 ### Question Selection
 
