@@ -141,25 +141,49 @@ Args: "<exact question text>"
 
 3. **Timing**: Invoke TTS before displaying the question text. This ensures voice starts playing as the user reads.
 
-4. **Question batching**: When asking 2-3 questions together:
-   - Combine into a single TTS invocation with natural pauses
-   - Example: "First question: What problem are you solving? ... And second: Why is this important now?"
-   - Or invoke TTS once per question with a brief pause between
+4. **No batching with voice**: When voice mode is enabled, ask ONE question at a time:
+   - Never batch multiple questions into a single AskUserQuestion call
+   - Voice a short intro, then show the single question
+   - This ensures voice and visual stay synchronized
+   - See "Adaptive Pacing" section for details
 
 5. **AskUserQuestion integration**: When using AskUserQuestion tool, invoke TTS with the question text before presenting the structured choice. The AskUserQuestion provides the visual output.
 
 ### Example Question Voicing
 
-For a simple question:
+For a regular question (short intro, not full text):
 ```
-Invoke skill: claude-mlx-tts:say
-Args: "What problem are you trying to solve?"
+# Voice short intro in background
+Bash: say.sh "About the core problem..." &
+
+# Immediately show full question
+AskUserQuestion:
+  question: "What problem are you trying to solve?"
+  header: "Problem"
+  options: [...]
 ```
 
-For phase transition with question:
+For phase transition (anchor - always voiced):
 ```
-Invoke skill: claude-mlx-tts:say
-Args: "Now let's talk about users and stakeholders. Who will be the primary users of this feature?"
+# Voice phase intro in background
+Bash: say.sh "Now let's talk about users and stakeholders." &
+
+# Show full question
+AskUserQuestion:
+  question: "Who will be the primary users of this feature?"
+  header: "Users"
+  options: [...]
+```
+
+For rapid-fire mode (voice skipped):
+```
+# No TTS call - user is responding quickly
+
+# Show question with indicator
+🔇 Who will be the primary users of this feature?
+   ○ Internal team
+   ○ End customers
+   ○ Both
 ```
 
 ## Summary Voicing
@@ -214,67 +238,85 @@ Args: "<long text to summarize and speak>"
 
 ## Adaptive Pacing
 
-TTS calls are blocking (~3s per question). Adapt voicing based on user response patterns.
+Adapt voicing based on user response timing. The goal: skip voice for users in rapid-fire mode, but always voice anchor questions.
+
+### Core Approach: Sequential Questions
+
+**CRITICAL: Ask ONE question at a time with voice before each.**
+
+```
+# For each question:
+say.sh "About timing..." &          # Fire-and-forget TTS
+AskUserQuestion(single question)    # Show visual immediately
+# Voice trails visual by ~100-200ms (natural, like a narrator)
+# Measure response time
+# Apply pacing logic for next question
+```
+
+**NO batching.** Never put multiple questions in a single AskUserQuestion call when voice is enabled.
 
 ### Anchor vs Non-Anchor Questions
 
-| Question Type | Always Voice? | Skip When Fast? |
-|---------------|---------------|-----------------|
-| Phase intro/transition | Yes | No |
-| AskUserQuestion (choices) | Yes | No |
-| Core interview questions | Yes | No |
-| Follow-up clarifications | No | Yes |
-| Quick confirmations | No | Yes |
-| Final recap/summary | Yes | No |
+| Question Type | Always Voice? | Rationale |
+|---------------|---------------|-----------|
+| Phase intro/transition | ✅ Yes | Orient user, reset pacing state |
+| Recap summaries | ✅ Yes | Important checkpoint |
+| Regular questions | Pacing-dependent | Skip if rapid-fire |
+| Follow-up clarifications | Pacing-dependent | Skip if rapid-fire |
 
-### Detecting User Pace
+### Response Timing
 
-Infer user pace from response patterns:
-
-**Fast-paced user** (reduce voicing):
-- Short, terse answers: "yes", "correct", "that's right"
-- User answers before you finish context
-- Quick back-and-forth pattern
-- User explicitly says "faster" or "skip ahead"
-
-**Deliberate-paced user** (voice everything):
-- Detailed, thoughtful responses
-- User asks clarifying questions
-- Takes time between responses
-- Explicitly appreciates voice feedback
-
-### Pacing Logic
+**Quick response threshold**: Under 5 seconds from AskUserQuestion invocation.
 
 ```
-At interview start:
-  voice_all = true  # Default to voicing
+question_start_time = now()
+answer = AskUserQuestion(...)
+response_time = now() - question_start_time
+
+if response_time < 5.0:
+    rapid_fire_mode = true
+```
+
+### Pacing State Machine
+
+```
+At interview/phase start:
+  rapid_fire_mode = false  # Always voice at start
 
 After each user response:
-  if response is terse AND came quickly:
-    fast_response_count += 1
-  else:
-    fast_response_count = 0
+  response_time = time_since_question_shown
 
-  if fast_response_count >= 2:
-    # User is in rapid-fire mode
-    voice_all = false
-    # Only voice anchor questions (phase intros, AskUserQuestion, recaps)
+  if response_time < 5 seconds:
+    rapid_fire_mode = true
+    # Skip voice for next non-anchor question
 
-  if user explicitly requests more/less voicing:
-    # Respect explicit preference
-    adjust voice_all accordingly
+  # Rapid-fire resets at phase transitions
+  # (handled by always voicing phase intros)
 ```
 
-### Graceful Adaptation
+### Visual Feedback
 
-When reducing voicing:
-- Don't announce "skipping voice for speed"
-- Just naturally continue with text
-- Resume voicing for anchor questions
+When voice is skipped due to rapid-fire mode, show indicator:
 
-When user pace slows down:
-- Gradually reintroduce voicing
-- Reset fast_response_count when user gives detailed answer
+```
+🔇 What specific timing threshold defines "quick"?
+   ○ Under 5 seconds
+   ○ Under 10 seconds
+   ○ Adaptive
+```
+
+The 🔇 appears before the question text when TTS would have played but was skipped.
+
+### Voice Content
+
+Keep voice intros **short** (~1-2 seconds):
+
+| Instead of (too long) | Say this |
+|----------------------|----------|
+| "What time threshold defines 'quick response'? For example, under 5 seconds, under 10 seconds, or should it adapt based on question complexity?" | "About timing thresholds..." |
+| "How should the pacing state reset? When should it go back to voicing questions?" | "About reset behavior..." |
+
+User reads full question visually. Voice provides context/framing only.
 
 ## Error Handling
 

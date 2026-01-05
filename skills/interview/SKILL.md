@@ -61,7 +61,8 @@ Conduct the interview following the phase structure in `references/phases.md`. K
 - Ask ONE question, wait for response, then ask the next
 - For structured choices: use AskUserQuestion with 2-4 options
 - For open-ended questions: still use AskUserQuestion with options like "Yes", "No", "Let me explain..."
-- Maximum 1-2 questions per turn, never more
+- Maximum 1 question per AskUserQuestion call when voice mode is enabled (for proper TTS sync)
+- When voice enabled: voice short intro, then show AskUserQuestion (see TTS Integration)
 
 **Adaptive behaviors**:
 - Skip phases not relevant to work type (e.g., skip Users phase for internal refactor)
@@ -313,19 +314,50 @@ After collecting clarifications:
 
 ### Blitz TTS Pacing
 
-When TTS is active in blitz mode:
+When TTS is active in blitz mode, use sequential questions with adaptive pacing.
 
-| Content | Voice? | Visual Output? | Rationale |
-|---------|--------|----------------|-----------|
-| Initial context summary | Yes (summary-say) | **ALWAYS** | Orient user |
-| Core questions | Yes (say) | **ALWAYS** | Key questions need voice |
-| Follow-up clarifications | Based on pace | **ALWAYS** | Skip voicing if user responds fast |
-| Confirmation questions | Yes (say) | **ALWAYS** | Important checkpoints |
-| Final summary | Yes (summary-say) | **ALWAYS** | Wrap up |
+**Core approach: One question at a time with voice before each**
 
-**Note**: Visual output is ALWAYS required. The "Voice?" column only indicates whether to add TTS on top of the visual output. TTS is supplementary, not a replacement.
+```
+# For each question:
+say.sh "About timing..." &          # Fire-and-forget TTS (short intro)
+AskUserQuestion(single question)    # Show visual immediately
+# Measure response time for pacing
+```
 
-If user responds before TTS finishes, reduce voicing for subsequent questions (but always show text).
+**NO batching.** Never put multiple questions in a single AskUserQuestion call.
+
+**Anchor vs non-anchor questions:**
+
+| Content | Always Voice? | Visual Output? |
+|---------|---------------|----------------|
+| Initial context summary | ✅ Yes | **ALWAYS** |
+| Phase intros | ✅ Yes | **ALWAYS** |
+| Recap summaries | ✅ Yes | **ALWAYS** |
+| Regular questions | Pacing-dependent | **ALWAYS** |
+| Follow-up clarifications | Pacing-dependent | **ALWAYS** |
+
+**Pacing logic:**
+
+```
+rapid_fire_mode = false  # Start with voice enabled
+
+After each response:
+  if response_time < 5 seconds:
+    rapid_fire_mode = true
+
+  # Reset at phase transitions (anchor questions)
+```
+
+**Visual feedback when voice skipped:**
+
+```
+🔇 What specific threshold defines "quick"?
+   ○ Under 5 seconds
+   ○ Under 10 seconds
+```
+
+**Voice content:** Keep intros SHORT (~1-2 seconds). Say "About timing..." not the full question text. User reads details visually.
 
 ## Reference Files
 
