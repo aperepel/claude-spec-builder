@@ -122,8 +122,13 @@ on the core auth flow being completed first."
 # ❌ WRONG: Using /summary-say for a question (loses exact wording)
 /summary-say "What authentication method should we use?"
 
-# ✅ CORRECT: Using /say for exact question (or short intro + visual)
-Bash: say.sh "About authentication..." &
+# ❌ WRONG: Using just a short intro (user doesn't hear the question)
+Invoke skill: claude-mlx-tts:say
+Args: "About authentication..."
+
+# ✅ CORRECT: Voice full question with conversational variation
+Invoke skill: claude-mlx-tts:say
+Args: "Now, which authentication method would work best for this?"
 AskUserQuestion: "Which authentication method should we use?"
 ```
 
@@ -165,6 +170,27 @@ Invoke skill: claude-mlx-tts:tts-status
 - ❌ Run shell commands to detect TTS
 - ❌ Check for running processes
 - ❌ Try to introspect available_skills manually
+
+**ANTI-PATTERN EXAMPLES (NEVER DO THIS):**
+```bash
+# ❌ WRONG: Using curl to call TTS endpoints
+curl -s -X POST http://localhost:21099/tts -H "Content-Type: application/json" -d '{"text": "..."}'
+curl -s -X POST http://localhost:21099/speak -d '{"text": "..."}'
+curl -s http://localhost:21099/v1/audio/speech ...
+
+# ❌ WRONG: Probing for API endpoints
+curl -s http://localhost:21099/openapi.json
+curl -s http://localhost:21099/docs
+
+# ✅ CORRECT: Always use the Skill tool
+Invoke skill: claude-mlx-tts:say
+Args: "Text to speak"
+
+Invoke skill: claude-mlx-tts:summary-say
+Args: "Long text to summarize and speak"
+```
+
+The TTS server's HTTP API is internal implementation detail. Use the Skill tool abstraction.
 
 **Interpretation of results:**
 
@@ -249,36 +275,57 @@ Args: "<exact question text>"
 
 1. **Visual output is MANDATORY**: After invoking TTS, you MUST also display the question text visually. TTS adds voice; it does not replace text output.
 
-2. **Exact wording**: Pass the complete question as you want it spoken. The TTS will read it verbatim.
+2. **Conversational variation**: Voice the full question meaning, but with natural conversational phrasing. Don't read verbatim - add starters like "So,", "Now,", use "we" instead of "you", etc.
 
 3. **Timing**: Invoke TTS before displaying the question text. This ensures voice starts playing as the user reads.
 
 4. **No batching with voice**: When voice mode is enabled, ask ONE question at a time:
    - Never batch multiple questions into a single AskUserQuestion call
-   - Voice a short intro, then show the single question
+   - Voice the FULL question text, then show the visual AskUserQuestion
    - This ensures voice and visual stay synchronized
-   - See "Adaptive Pacing" section for details
 
-5. **AskUserQuestion integration**: When using AskUserQuestion tool, invoke TTS with the question text before presenting the structured choice. The AskUserQuestion provides the visual output.
+5. **AskUserQuestion integration**: When using AskUserQuestion tool, invoke TTS with the FULL question text before presenting the structured choice. The AskUserQuestion provides the visual output.
 
 ### Example Question Voicing
 
-For a regular question (short intro, not full text):
-```
-# Voice short intro in background
-Bash: say.sh "About the core problem..." &
+**DEFAULT: Voice the question with slight conversational variation.**
 
-# Immediately show full question
+The voiced version should convey the same question but feel natural and conversational, not like reading the screen verbatim. Add conversational filler, rephrase slightly, or include context.
+
+```
+# Step 1: Voice a conversational version of the question
+Invoke skill: claude-mlx-tts:say
+Args: "So, what problem are we trying to solve here?"
+
+# Step 2: Show the exact question visually
 AskUserQuestion:
   question: "What problem are you trying to solve?"
   header: "Problem"
   options: [...]
 ```
 
-For phase transition (anchor - always voiced):
+**More examples of voice variations:**
+
+| Visual Question | Voiced Version |
+|-----------------|----------------|
+| "What problem are you trying to solve?" | "So, what problem are we trying to solve here?" |
+| "Which authentication method should we use?" | "Now, which authentication method would work best for this?" |
+| "What's the expected response time?" | "And what kind of response time are we aiming for?" |
+| "Who are the primary users?" | "Let's talk about users. Who will be using this primarily?" |
+| "What happens if the API fails?" | "Now, what should happen if the API call fails?" |
+
+**Guidelines for voice variations:**
+- Add conversational starters: "So,", "Now,", "Let's talk about...", "And..."
+- Use "we" instead of "you" for collaborative feel
+- Add brief context when transitioning topics
+- Keep the core question intact - just make it flow naturally
+- DON'T read option text aloud - just the question
+
+For phase transition (include context in voice):
 ```
-# Voice phase intro in background
-Bash: say.sh "Now let's talk about users and stakeholders." &
+# Voice phase intro + conversational question
+Invoke skill: claude-mlx-tts:say
+Args: "Great, now let's talk about users and stakeholders. Who do you expect will be using this feature primarily?"
 
 # Show full question
 AskUserQuestion:
@@ -352,9 +399,9 @@ Args: "<long text to summarize and speak>"
 
 | Content Type | Command | Key Rule |
 |--------------|---------|----------|
-| Single interview question | `/say` | Exact wording critical |
+| Single interview question | `/say` | Full question, conversational variation OK |
 | Compound/multi-part question | `/summary-say` | Condense, user reads full |
-| Phase intro (1-2 sentences) | `/say` | Short enough for verbatim |
+| Phase intro (1-2 sentences) | `/say` | Include with question |
 | **Phase summary** | **`/summary-say`** | **ALWAYS** - prevents attention loss |
 | **Final recap** | **`/summary-say`** | **ALWAYS** - focus on decisions |
 | **Beads announcement** | **`/summary-say`** | **ALWAYS** - summarize structure |
@@ -372,12 +419,15 @@ Adapt voicing based on user response timing. The goal: skip voice for users in r
 
 ```
 # For each question:
-say.sh "About timing..." &          # Fire-and-forget TTS
+Invoke skill: claude-mlx-tts:say    # TTS for conversational question
+Args: "So, what timing constraints are we working with?"
 AskUserQuestion(single question)    # Show visual immediately
-# Voice trails visual by ~100-200ms (natural, like a narrator)
 # Measure response time
 # Apply pacing logic for next question
 ```
+
+**CRITICAL: Use the Skill tool for TTS, NOT curl/bash commands to HTTP endpoints.**
+**Voice the full question (with conversational variation), not just a short intro.**
 
 **NO batching.** Never put multiple questions in a single AskUserQuestion call when voice is enabled.
 
@@ -435,14 +485,14 @@ The 🔇 appears before the question text when TTS would have played but was ski
 
 ### Voice Content
 
-Keep voice intros **short** (~1-2 seconds):
+**Voice the full question with conversational variation.** Don't just say "About X..." - voice the actual question in a natural way.
 
-| Instead of (too long) | Say this |
-|----------------------|----------|
-| "What time threshold defines 'quick response'? For example, under 5 seconds, under 10 seconds, or should it adapt based on question complexity?" | "About timing thresholds..." |
-| "How should the pacing state reset? When should it go back to voicing questions?" | "About reset behavior..." |
+| Visual Question | Voiced Version (conversational) |
+|-----------------|--------------------------------|
+| "What time threshold defines 'quick response'?" | "So, what timing threshold should we use for a 'quick' response?" |
+| "How should the pacing state reset?" | "And how should the pacing state reset - when should it go back to voicing?" |
 
-User reads full question visually. Voice provides context/framing only.
+**DON'T** voice the options/choices - just the question itself. User reads options visually.
 
 ## Error Handling
 
@@ -555,21 +605,33 @@ After user enables voice mode (or --voice flag):
 
 **CRITICAL: Visual output is MANDATORY. TTS is supplementary.**
 
+**CRITICAL: When voice mode is enabled, you MUST invoke the TTS skill BEFORE each AskUserQuestion.**
+
 ```
-For each question or question batch:
+For each question:
   If voice_mode_enabled and tts_verified:
-    Invoke /say with question text
-  ALWAYS display question text visually (regardless of TTS state)
-  Use AskUserQuestion tool for structured response
-  Wait for user response
+    # Step 1: Invoke TTS skill with conversational version (REQUIRED when voice enabled)
+    Invoke skill: claude-mlx-tts:say
+    Args: "So, what's the primary goal we're trying to achieve here?"
+
+  # Step 2: Show question visually (ALWAYS required)
+  AskUserQuestion:
+    question: "What is the primary goal of this feature?"
+    header: "Goal"
+    options: [...]
+
+  # Step 3: Wait for user response
 
 For phase transitions:
   If voice_mode_enabled and tts_verified:
-    Invoke /summary-say with phase summary
+    Invoke skill: claude-mlx-tts:summary-say
+    Args: "Phase summary text..."
   ALWAYS display summary text visually (regardless of TTS state)
 ```
 
 **Remember**: TTS adds voice ON TOP OF visual output. It never replaces it.
+
+**Common mistake**: Skipping the TTS skill invocation. If voice mode is enabled, you MUST call the skill before EVERY question.
 
 ### Phase 10: Validation & Output
 

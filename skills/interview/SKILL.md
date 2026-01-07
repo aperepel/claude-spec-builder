@@ -62,7 +62,16 @@ Conduct the interview following the phase structure in `references/phases.md`. K
 - For structured choices: use AskUserQuestion with 2-4 options
 - For open-ended questions: still use AskUserQuestion with options like "Yes", "No", "Let me explain..."
 - Maximum 1 question per AskUserQuestion call when voice mode is enabled (for proper TTS sync)
-- When voice enabled: voice short intro, then show AskUserQuestion (see TTS Integration)
+- **When voice enabled: MUST invoke TTS skill BEFORE each AskUserQuestion:**
+  ```
+  Invoke skill: claude-mlx-tts:say
+  Args: "So, what problem are we trying to solve here?"
+
+  AskUserQuestion:
+    question: "What problem are you trying to solve?"
+    ...
+  ```
+  Voice the FULL question with conversational variation (add "So,", "Now,", use "we" instead of "you").
 
 **Adaptive behaviors**:
 - Skip phases not relevant to work type (e.g., skip Users phase for internal refactor)
@@ -129,24 +138,38 @@ Generate spec using template from `references/spec-template.md`. Key sections:
 
 ## TTS Integration (Optional)
 
-If claude-mlx-tts is available and user wants voice:
-- Questions: Use `/say` (exact wording needed)
-- Summaries: Use `/summary-say` (can be condensed)
-- Status updates: Use `/say` (brief announcements)
+If claude-mlx-tts is available and user wants voice, **you MUST invoke the Skill tool for EVERY question**:
+
+```
+# For each interview question when voice is enabled:
+Invoke skill: claude-mlx-tts:say
+Args: "So, what problem are we trying to solve here?"
+
+AskUserQuestion:
+  question: "What problem are you trying to solve?"
+  ...
+```
+
+**Voice the FULL question with conversational variation** - don't just say "About X...", voice the actual question in a natural way (add "So,", "Now,", use "we" instead of "you").
+
+**TTS Skill Commands:**
+- Questions: `Invoke skill: claude-mlx-tts:say` with full question (conversational variation)
+- Summaries: `Invoke skill: claude-mlx-tts:summary-say` for long content
+- Status updates: `Invoke skill: claude-mlx-tts:say` for brief announcements
 
 **⚠️ CRITICAL: Visual output is MANDATORY regardless of TTS state.**
 
 TTS is SUPPLEMENTARY - it adds voice ON TOP OF visual output. Every message that is voiced MUST also be printed to the terminal. Never use TTS as a replacement for text output.
 
 ```
-# WRONG: Voice only
-Invoke /say with question
-# (no visual output)
+# WRONG: Skip TTS invocation or use short intro
+AskUserQuestion(...)  # No voice!
+Invoke skill: claude-mlx-tts:say Args: "About authentication..."  # Too short!
 
-# CORRECT: Voice AND visual output
-Invoke /say with question
-Display question text visually
-Use AskUserQuestion for response
+# CORRECT: Invoke TTS skill with FULL question, then show visual
+Invoke skill: claude-mlx-tts:say
+Args: "Now, which authentication method would work best for this?"
+AskUserQuestion(...)  # User hears full question + sees it
 ```
 
 See `references/tts-integration.md` for complete TTS integration details.
@@ -320,10 +343,14 @@ When TTS is active in blitz mode, use sequential questions with adaptive pacing.
 
 ```
 # For each question:
-say.sh "About timing..." &          # Fire-and-forget TTS (short intro)
+Invoke skill: claude-mlx-tts:say    # TTS for full question (conversational)
+Args: "So, what timing constraints are we working with?"
 AskUserQuestion(single question)    # Show visual immediately
 # Measure response time for pacing
 ```
+
+**CRITICAL: Use the Skill tool for TTS, NOT curl/bash commands to HTTP endpoints.**
+**Voice the FULL question with conversational variation, not just a short intro.**
 
 **NO batching.** Never put multiple questions in a single AskUserQuestion call.
 
