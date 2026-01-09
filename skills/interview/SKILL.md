@@ -246,6 +246,10 @@ Please answer these!
 
 **DO** this (correct):
 ```
+# When voice enabled: MUST invoke /say BEFORE AskUserQuestion
+Invoke skill: claude-mlx-tts:say
+Args: "So, what is X that we're dealing with?"
+
 Use AskUserQuestion tool:
   question: "What is X?"
   header: "Scope"
@@ -253,10 +257,16 @@ Use AskUserQuestion tool:
 
 [Wait for user response]
 
+# Voice the next question before showing it
+Invoke skill: claude-mlx-tts:say
+Args: "Now, what about Y?"
+
 Use AskUserQuestion tool:
   question: "What is Y?"
   ...
 ```
+
+**⚠️ When voice is enabled, you MUST invoke `/say` with the full question BEFORE each `AskUserQuestion`.** The permission hook does NOT voice questions - the skill must do it explicitly.
 
 Based on completeness score from context loading:
 
@@ -384,7 +394,7 @@ After each response:
    ○ Under 10 seconds
 ```
 
-**Voice content:** Keep intros SHORT (~1-2 seconds). Say "About timing..." not the full question text. User reads details visually.
+**Voice content:** Voice the FULL question with conversational variation (add "So,", "Now,", use "we" instead of "you"). See `references/tts-integration.md` for examples.
 
 ## Reference Files
 
