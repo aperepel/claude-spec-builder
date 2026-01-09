@@ -62,16 +62,7 @@ Conduct the interview following the phase structure in `references/phases.md`. K
 - For structured choices: use AskUserQuestion with 2-4 options
 - For open-ended questions: still use AskUserQuestion with options like "Yes", "No", "Let me explain..."
 - Maximum 1 question per AskUserQuestion call when voice mode is enabled (for proper TTS sync)
-- **When voice enabled: MUST invoke TTS skill BEFORE each AskUserQuestion:**
-  ```
-  Invoke skill: claude-mlx-tts:say
-  Args: "So, what problem are we trying to solve here?"
-
-  AskUserQuestion:
-    question: "What problem are you trying to solve?"
-    ...
-  ```
-  Voice the FULL question with conversational variation (add "So,", "Now,", use "we" instead of "you").
+- **Voice mode note:** The TTS permission hook automatically voices each `AskUserQuestion` with conversational variation. You do NOT need to manually invoke `/say` before questions.
 
 **Adaptive behaviors**:
 - Skip phases not relevant to work type (e.g., skip Users phase for internal refactor)
@@ -138,39 +129,17 @@ Generate spec using template from `references/spec-template.md`. Key sections:
 
 ## TTS Integration (Optional)
 
-If claude-mlx-tts is available and user wants voice, **you MUST invoke the Skill tool for EVERY question**:
+If claude-mlx-tts is available:
 
-```
-# For each interview question when voice is enabled:
-Invoke skill: claude-mlx-tts:say
-Args: "So, what problem are we trying to solve here?"
+**Questions are voiced automatically:** The TTS permission hook voices each `AskUserQuestion` with conversational variation. You do NOT need to invoke `/say` before questions.
 
-AskUserQuestion:
-  question: "What problem are you trying to solve?"
-  ...
-```
-
-**Voice the FULL question with conversational variation** - don't just say "About X...", voice the actual question in a natural way (add "So,", "Now,", use "we" instead of "you").
-
-**TTS Skill Commands:**
-- Questions: `Invoke skill: claude-mlx-tts:say` with full question (conversational variation)
-- Summaries: `Invoke skill: claude-mlx-tts:summary-say` for long content
+**Use `/say` for other content:**
+- Summaries: `Invoke skill: claude-mlx-tts:summary-say` for long content (phase recaps, final validation)
 - Status updates: `Invoke skill: claude-mlx-tts:say` for brief announcements
 
 **⚠️ CRITICAL: Visual output is MANDATORY regardless of TTS state.**
 
-TTS is SUPPLEMENTARY - it adds voice ON TOP OF visual output. Every message that is voiced MUST also be printed to the terminal. Never use TTS as a replacement for text output.
-
-```
-# WRONG: Skip TTS invocation or use short intro
-AskUserQuestion(...)  # No voice!
-Invoke skill: claude-mlx-tts:say Args: "About authentication..."  # Too short!
-
-# CORRECT: Invoke TTS skill with FULL question, then show visual
-Invoke skill: claude-mlx-tts:say
-Args: "Now, which authentication method would work best for this?"
-AskUserQuestion(...)  # User hears full question + sees it
-```
+TTS is SUPPLEMENTARY - it adds voice ON TOP OF visual output. Every message that is voiced MUST also be printed to the terminal.
 
 See `references/tts-integration.md` for complete TTS integration details.
 
@@ -246,10 +215,6 @@ Please answer these!
 
 **DO** this (correct):
 ```
-# When voice enabled: MUST invoke /say BEFORE AskUserQuestion
-Invoke skill: claude-mlx-tts:say
-Args: "So, what is X that we're dealing with?"
-
 Use AskUserQuestion tool:
   question: "What is X?"
   header: "Scope"
@@ -257,16 +222,12 @@ Use AskUserQuestion tool:
 
 [Wait for user response]
 
-# Voice the next question before showing it
-Invoke skill: claude-mlx-tts:say
-Args: "Now, what about Y?"
-
 Use AskUserQuestion tool:
   question: "What is Y?"
   ...
 ```
 
-**⚠️ When voice is enabled, you MUST invoke `/say` with the full question BEFORE each `AskUserQuestion`.** The permission hook does NOT voice questions - the skill must do it explicitly.
+**Note:** When TTS is available, the permission hook automatically voices each `AskUserQuestion` with conversational variation. You do NOT need to invoke `/say` before questions - the hook handles it.
 
 Based on completeness score from context loading:
 
@@ -347,54 +308,20 @@ After collecting clarifications:
 
 ### Blitz TTS Pacing
 
-When TTS is active in blitz mode, use sequential questions with adaptive pacing.
+When TTS is active in blitz mode, use sequential questions.
 
-**Core approach: One question at a time with voice before each**
-
-```
-# For each question:
-Invoke skill: claude-mlx-tts:say    # TTS for full question (conversational)
-Args: "So, what timing constraints are we working with?"
-AskUserQuestion(single question)    # Show visual immediately
-# Measure response time for pacing
-```
-
-**CRITICAL: Use the Skill tool for TTS, NOT curl/bash commands to HTTP endpoints.**
-**Voice the FULL question with conversational variation, not just a short intro.**
+**Questions are voiced automatically:** The TTS permission hook voices each `AskUserQuestion` with conversational variation. You do NOT need to invoke `/say` before questions.
 
 **NO batching.** Never put multiple questions in a single AskUserQuestion call.
 
-**Anchor vs non-anchor questions:**
+**Use `/say` for anchor content:**
 
-| Content | Always Voice? | Visual Output? |
-|---------|---------------|----------------|
-| Initial context summary | ✅ Yes | **ALWAYS** |
-| Phase intros | ✅ Yes | **ALWAYS** |
-| Recap summaries | ✅ Yes | **ALWAYS** |
-| Regular questions | Pacing-dependent | **ALWAYS** |
-| Follow-up clarifications | Pacing-dependent | **ALWAYS** |
-
-**Pacing logic:**
-
-```
-rapid_fire_mode = false  # Start with voice enabled
-
-After each response:
-  if response_time < 5 seconds:
-    rapid_fire_mode = true
-
-  # Reset at phase transitions (anchor questions)
-```
-
-**Visual feedback when voice skipped:**
-
-```
-🔇 What specific threshold defines "quick"?
-   ○ Under 5 seconds
-   ○ Under 10 seconds
-```
-
-**Voice content:** Voice the FULL question with conversational variation (add "So,", "Now,", use "we" instead of "you"). See `references/tts-integration.md` for examples.
+| Content | Voice with /say? | Visual Output? |
+|---------|------------------|----------------|
+| Initial context summary | ✅ Yes (`/summary-say`) | **ALWAYS** |
+| Phase intros | ✅ Yes (`/say`) | **ALWAYS** |
+| Recap summaries | ✅ Yes (`/summary-say`) | **ALWAYS** |
+| Questions | ❌ No (hook handles) | **ALWAYS** |
 
 ## Reference Files
 
